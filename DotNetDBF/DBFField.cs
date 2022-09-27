@@ -119,8 +119,8 @@ namespace DotNetDBF
                         fieldLength = 8; /* fall through */
                         goto default;
                     case NativeDbType.Memo:
-                        fieldLength = 10;
-                        //fieldLength = 4;
+                        //fieldLength = 10;
+                        fieldLength = 4;
                         goto default;
                     case NativeDbType.Logical:
                         fieldLength = 1;
@@ -286,7 +286,7 @@ namespace DotNetDBF
         /**
          Creates a DBFField object from the data read from the given DataInputStream.
          
-         The data in the DataInputStream object is supposed to be organised correctly
+         The data in the DataInputStream object is supposed to be organized correctly
          and the stream "pointer" is supposed to be positioned properly.
          
          @param in DataInputStream

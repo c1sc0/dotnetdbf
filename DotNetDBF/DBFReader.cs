@@ -36,7 +36,7 @@ namespace DotNetDBF
         /* Class specific variables */
         private bool _isClosed = true;
 
-
+        public int HeaderOffset { get; set; } = 0;
         /**
 		 Initializes a DBFReader object.
 		 
@@ -433,6 +433,7 @@ namespace DotNetDBF
                             }
 
 
+                            
 
                             var rawMemoPointer = _dataInputStream.ReadBytes(_header.FieldArray[i].FieldLength);
 
@@ -441,7 +442,7 @@ namespace DotNetDBF
                                 BlockSize = 64;
                                 recordObjects[i] = new MemoValue((BitConverter.ToInt32(rawMemoPointer, 0)), this,
                                     _dataMemoLoc,
-                                    GetLazyStreamFromLocation()) { MemoTerminator = "\x01", HeaderOffset = 8 };
+                                    GetLazyStreamFromLocation()) { MemoTerminator = "\x01", HeaderOffset = HeaderOffset };
                             }
                             else
                             {
@@ -466,7 +467,7 @@ namespace DotNetDBF
                                     GetLazyStreamFromLocation())
                                 {
                                     MemoTerminator = "\x1A",
-                                    HeaderOffset = 0
+                                    HeaderOffset = HeaderOffset
                                 };
                             }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace DotNetDBF
@@ -10,7 +11,8 @@ namespace DotNetDBF
         private bool _loaded;
         private bool _new;
 
-        public string MemoTerminator { get; set; } = "\x01";
+        public string MemoTerminator { get; set; } = "\x1A";
+
         public int HeaderOffset { get; set; } = 0;
 
         public MemoValue(string aValue)
@@ -63,34 +65,45 @@ namespace DotNetDBF
                     throw new InvalidDataException("Null Memo Field Stream from Writer");
                 }
 
-                    var tWriter = new BinaryWriter(raf, aBase.CharEncoding); //Don't close the stream could be used else where;
-                
-                    if (raf.Length == 0)
-                    {
-                        var tHeader = new DBTHeader();
-                        tHeader.Write(tWriter);
-                    }
+                var tWriter = new BinaryWriter(raf, aBase.CharEncoding); //Don't close the stream could be used else where;
+            
+                if (raf.Length == 0)
+                {
+                    var tHeader = new DBTHeader();
+                    tHeader.Write(tWriter);
+                }
 
-                    var tValue = _value;
-                    if ((tValue.Length + sizeof(int)) % aBase.BlockSize != 0)
-                    {
-                        tValue = tValue + MemoTerminator;
-                    }
+                var tValue = _value;
+                if ((tValue.Length + sizeof(int)) % aBase.BlockSize != 0)
+                {
+                    
+                    tValue = tValue + MemoTerminator;
+                }
 
-                    var tPosition = raf.Seek(0, SeekOrigin.End); //Got To End Of File
-                    var tBlockDiff = tPosition % aBase.BlockSize;
-                    if (tBlockDiff != 0)
-                    {
-                        tPosition = raf.Seek(aBase.BlockSize - tBlockDiff, SeekOrigin.Current);
-                    }
-                    _block = tPosition / aBase.BlockSize;
-                    var tData = aBase.CharEncoding.GetBytes(tValue);
-                    var tDataLength = tData.Length;
-                    var tNewDiff = (tDataLength % aBase.BlockSize);
-                    tWriter.Write(tData);
-                    if (tNewDiff != 0)
-                        tWriter.Seek(aBase.BlockSize - (tDataLength % aBase.BlockSize), SeekOrigin.Current);
-                
+                if ((tValue.Length % aBase.BlockSize) != 0)
+                {
+                    var remainder = tValue.Length % aBase.BlockSize;
+                    tValue += string.Join("", Enumerable.Range(0, aBase.BlockSize - remainder).Select(_ => "\x00"));
+                }
+
+
+
+                var tPosition = raf.Seek(0, SeekOrigin.End); //Got To End Of File
+                var tBlockDiff = tPosition % aBase.BlockSize;
+                if (tBlockDiff != 0)
+                {
+                    tPosition = raf.Seek(aBase.BlockSize - tBlockDiff, SeekOrigin.Current);
+                }
+                _block = tPosition / aBase.BlockSize;
+                var tData = aBase.CharEncoding.GetBytes(tValue);
+                var tDataLength = tData.Length;
+                var tNewDiff = (tDataLength % aBase.BlockSize);
+                tWriter.Write(tData);
+                if (tNewDiff != 0)
+                    tWriter.Seek(aBase.BlockSize - (tDataLength % aBase.BlockSize), SeekOrigin.Current);
+                tWriter.Flush();
+                    
+
             }
         }
 
@@ -118,7 +131,7 @@ namespace DotNetDBF
                         do
                         {
                             var blockSize = _base.BlockSize;
-                            blockSize = 64;
+                            
                             var data = reader.ReadBytes(blockSize);
                             if ((data.Length == 0))
                             {
@@ -132,7 +145,7 @@ namespace DotNetDBF
                             if (termIndex != -1)
                                 stringVal = stringVal.Substring(0, termIndex);
                             builder.Append(stringVal);
-                        } while (termIndex == -1 && reader.BaseStream.Position < 1024);
+                        } while (termIndex == -1 && reader.BaseStream.Position < reader.BaseStream.Length);
                         _value = builder.ToString().Replace(softReturn, string.Empty);
                     }
                     _loaded = true;

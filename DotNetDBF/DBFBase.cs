@@ -27,6 +27,7 @@ namespace DotNetDBF
         public Encoding CharEncoding { get; set; } = Encoding.GetEncoding("utf-8");
 
         public int BlockSize { get; set; } = 512;
+
         
         private string _nullSymbol;
         public string NullSymbol

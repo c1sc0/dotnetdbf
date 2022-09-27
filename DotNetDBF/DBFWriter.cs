@@ -503,14 +503,14 @@ namespace DotNetDBF
 
                             tMemoValue.Write(this);
 
-                            dataOutput.Write(Utils.NumericFormating(tMemoValue.Block, CharEncoding, 10, 0));
+                            dataOutput.Write((int)tMemoValue.Block);
                         }
                         else
                         {
                             dataOutput.Write(
                                 Utils.textPadding("",
                                     CharEncoding,
-                                    10
+                                    4
                                 )
                             );
                         }
