@@ -7,10 +7,11 @@ namespace DotNetDBF
 {
     public class MemoValue
     {
-        public const string MemoTerminator = "\x1A";
         private bool _loaded;
         private bool _new;
 
+        public string MemoTerminator { get; set; } = "\x01";
+        public int HeaderOffset { get; set; } = 0;
 
         public MemoValue(string aValue)
         {
@@ -103,27 +104,35 @@ namespace DotNetDBF
                     if (_new || _loaded) return _value;
                     var fileStream = _fileStream();
 
+                    
                     var reader = new BinaryReader(fileStream);
                         
                     {
-                        reader.BaseStream.Seek(_block * _base.BlockSize, SeekOrigin.Begin);
+                        var baseBlockSize = (_block * _base.BlockSize) + HeaderOffset;
+                        
+                        reader.BaseStream.Seek(baseBlockSize, SeekOrigin.Begin);
                         var builder = new StringBuilder();
                         int termIndex;
                         var softReturn = _base.CharEncoding.GetString(new byte[] {0x8d, 0x0a});
 
                         do
                         {
-                            var data = reader.ReadBytes(_base.BlockSize);
+                            var blockSize = _base.BlockSize;
+                            blockSize = 64;
+                            var data = reader.ReadBytes(blockSize);
                             if ((data.Length == 0))
                             {
                                 throw new DBTException("Missing Data for block or no 1a memo terminator");
                             }
                             var stringVal = _base.CharEncoding.GetString(data);
                             termIndex = stringVal.IndexOf(MemoTerminator, StringComparison.Ordinal);
+                            
+
+
                             if (termIndex != -1)
                                 stringVal = stringVal.Substring(0, termIndex);
                             builder.Append(stringVal);
-                        } while (termIndex == -1);
+                        } while (termIndex == -1 && reader.BaseStream.Position < 1024);
                         _value = builder.ToString().Replace(softReturn, string.Empty);
                     }
                     _loaded = true;

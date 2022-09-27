@@ -29,11 +29,13 @@ namespace DotNetDBF
 
         private string _dataMemoLoc;
 
-        private int[] _selectFields = new int[] {};
-        private int[] _orderedSelectFields = new int[] {};
+        private int[] _selectFields = new int[] { };
+
+        private int[] _orderedSelectFields = new int[] { };
+
         /* Class specific variables */
         private bool _isClosed = true;
-        
+
 
         /**
 		 Initializes a DBFReader object.
@@ -45,8 +47,6 @@ namespace DotNetDBF
 		 
 		 @param InputStream where the data is read from.
 		 */
-
-
         public void SetSelectFields(params string[] aParams)
         {
             _selectFields =
@@ -160,24 +160,24 @@ namespace DotNetDBF
         }
 
 
-
         public delegate Stream LazyStream();
 
         private Stream _loadedStream;
-     
+
         private LazyStream GetLazyStreamFromLocation()
         {
-
             if (_dataMemo == null && !string.IsNullOrEmpty(_dataMemoLoc))
             {
-                return  () => _loadedStream ??
-                                  (_loadedStream = File.Open(_dataMemoLoc, FileMode.Open, FileAccess.Read,
-                                      FileShare.Read));
+                return () => _loadedStream ??
+                             (_loadedStream = File.Open(_dataMemoLoc, FileMode.Open, FileAccess.Read,
+                                 FileShare.Read));
             }
+
             if (_dataMemo != null)
             {
                 return () => _dataMemo;
             }
+
             return null;
         }
 
@@ -207,14 +207,11 @@ namespace DotNetDBF
 
         public void Close()
         {
-
-
             _loadedStream?.Close();
             _dataMemo?.Close();
             _dataInputStream.Close();
 
             _dataMemo?.Dispose();
-
 
 
             _isClosed = true;
@@ -225,7 +222,6 @@ namespace DotNetDBF
 		 @returns The next row as an Object array. Types of the elements
 		 these arrays follow the convention mentioned in the class description.
 		 */
-
         public object[] NextRecord()
         {
             return NextRecord(_selectFields, _orderedSelectFields);
@@ -238,6 +234,7 @@ namespace DotNetDBF
             {
                 throw new DBFException("Source is not open");
             }
+
             var tOrderdSelectIndexes = sortedIndexes;
 
             var recordObjects = new object[_header.FieldArray.Length];
@@ -272,6 +269,7 @@ namespace DotNetDBF
                         _dataInputStream.BaseStream.Seek(_header.FieldArray[i].FieldLength, SeekOrigin.Current);
                         continue;
                     }
+
                     if (tOrderdSelectIndexes.Count > j)
                         k = tOrderdSelectIndexes[j];
                     j++;
@@ -283,7 +281,7 @@ namespace DotNetDBF
 
                             var b_array = new byte[
                                 _header.FieldArray[i].FieldLength
-                                ];
+                            ];
                             _dataInputStream.Read(b_array, 0, b_array.Length);
 
                             recordObjects[i] = CharEncoding.GetString(b_array).TrimEnd();
@@ -340,7 +338,7 @@ namespace DotNetDBF
                             {
                                 var t_float = new byte[
                                     _header.FieldArray[i].FieldLength
-                                    ];
+                                ];
                                 _dataInputStream.Read(t_float, 0, t_float.Length);
                                 var tParsed = CharEncoding.GetString(t_float);
                                 var tLast = tParsed.Substring(tParsed.Length - 1);
@@ -377,7 +375,7 @@ namespace DotNetDBF
                             {
                                 var t_numeric = new byte[
                                     _header.FieldArray[i].FieldLength
-                                    ];
+                                ];
                                 _dataInputStream.Read(t_numeric,
                                     0,
                                     t_numeric.Length);
@@ -410,8 +408,8 @@ namespace DotNetDBF
                             var t_logical = _dataInputStream.ReadByte();
                             //todo find out whats really valid
                             if (t_logical == 'Y' || t_logical == 't'
-                                || t_logical == 'T'
-                                || t_logical == 't')
+                                                 || t_logical == 'T'
+                                                 || t_logical == 't')
                             {
                                 recordObjects[i] = true;
                             }
@@ -423,48 +421,65 @@ namespace DotNetDBF
                             {
                                 recordObjects[i] = false;
                             }
+
                             break;
 
                         case NativeDbType.Memo:
                             if (
-
-                                string.IsNullOrEmpty(_dataMemoLoc) && 
-
+                                string.IsNullOrEmpty(_dataMemoLoc) &&
                                 _dataMemo is null)
                             {
                                 throw new Exception("Memo Location Not Set");
                             }
 
 
+
                             var rawMemoPointer = _dataInputStream.ReadBytes(_header.FieldArray[i].FieldLength);
-                            var memoPointer = CharEncoding.GetString(rawMemoPointer);
-                            if (string.IsNullOrEmpty(memoPointer))
+
+                            if (rawMemoPointer.Length == 4)
                             {
-                                recordObjects[i] = DBNull.Value;
-                                break;
+                                BlockSize = 64;
+                                recordObjects[i] = new MemoValue((BitConverter.ToInt32(rawMemoPointer, 0)), this,
+                                    _dataMemoLoc,
+                                    GetLazyStreamFromLocation()) { MemoTerminator = "\x01", HeaderOffset = 8 };
+                            }
+                            else
+                            {
+                                var memoPointer = CharEncoding.GetString(rawMemoPointer);
+                                if (string.IsNullOrEmpty(memoPointer))
+                                {
+                                    recordObjects[i] = DBNull.Value;
+                                    break;
+                                }
+
+                                if (!long.TryParse(memoPointer, out var tBlock))
+                                {
+                                    //Because Memo files can vary and are often the least important data, 
+                                    //we will return null when it doesn't match our format.
+                                    recordObjects[i] = DBNull.Value;
+                                    break;
+                                }
+
+                                BlockSize = 512;
+                                recordObjects[i] = new MemoValue(tBlock, this,
+                                    _dataMemoLoc,
+                                    GetLazyStreamFromLocation())
+                                {
+                                    MemoTerminator = "\x1A",
+                                    HeaderOffset = 0
+                                };
                             }
 
-                            if (!long.TryParse(memoPointer, out var tBlock))
-                            {
-                                //Because Memo files can vary and are often the least important data, 
-                                //we will return null when it doesn't match our format.
-                                recordObjects[i] = DBNull.Value;
-                                break;
-                            }
 
-
-                            recordObjects[i] = new MemoValue(tBlock, this, 
-                                _dataMemoLoc,
-                                GetLazyStreamFromLocation());
                             break;
                         default:
-                            {
-                                byte[] data = _dataInputStream.ReadBytes(_header.FieldArray[i].FieldLength);
+                        {
+                            byte[] data = _dataInputStream.ReadBytes(_header.FieldArray[i].FieldLength);
 
-                                recordObjects[i] = data != null ? (object)data : DBNull.Value;
+                            recordObjects[i] = data != null ? (object)data : DBNull.Value;
 
-                                break;
-                            }
+                            break;
+                        }
                     }
                 }
             }

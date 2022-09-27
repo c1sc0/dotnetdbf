@@ -120,6 +120,7 @@ namespace DotNetDBF
                         goto default;
                     case NativeDbType.Memo:
                         fieldLength = 10;
+                        //fieldLength = 4;
                         goto default;
                     case NativeDbType.Logical:
                         fieldLength = 1;
