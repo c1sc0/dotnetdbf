@@ -82,9 +82,12 @@ namespace DotNetDBF
                 if ((tValue.Length + sizeof(int) + 8) % aBase.BlockSize != 0) // 8 because of the header and size below
                 {
                     
-                    var header = "\0\0\0\u0001";
-                    var temp = BitConverter.GetBytes(_value.Length).Reverse().ToArray();
-                    tValue = header + string.Join("", Encoding.UTF8.GetChars(temp)) + tValue + MemoTerminator;
+                    var header = "\u0000\u0000\u0000\u0001";
+                    var size = string.Join("", Enumerable.Range(0, 4).Select(_ => "\x00"));
+                    tValue = header + size + tValue + MemoTerminator;
+                   
+                    
+                    
                 }
 
                 if ((tValue.Length % aBase.BlockSize) != 0)
@@ -103,6 +106,15 @@ namespace DotNetDBF
                 }
                 _block = tPosition / aBase.BlockSize;
                 var tData = aBase.CharEncoding.GetBytes(tValue);
+                var temp = BitConverter.GetBytes(_value.Length).Reverse().ToArray();
+                tData[4] = temp[0];
+                tData[5] = temp[1];
+                tData[6] = temp[2];
+                tData[7] = temp[3];
+                
+
+
+
                 var tDataLength = tData.Length;
                 var tNewDiff = (tDataLength % aBase.BlockSize);
                 tWriter.Write(tData);
