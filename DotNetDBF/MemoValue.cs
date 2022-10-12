@@ -71,13 +71,20 @@ namespace DotNetDBF
                 {
                     var tHeader = new DBTHeader();
                     tHeader.Write(tWriter);
+                    
                 }
+                
+                
 
-                var tValue = _value;
-                if ((tValue.Length + sizeof(int)) % aBase.BlockSize != 0)
+
+
+                var tValue =  _value;
+                if ((tValue.Length + sizeof(int) + 8) % aBase.BlockSize != 0) // 8 because of the header and size below
                 {
                     
-                    tValue = tValue + MemoTerminator;
+                    var header = "\0\0\0\u0001";
+                    var temp = BitConverter.GetBytes(_value.Length).Reverse().ToArray();
+                    tValue = header + string.Join("", Encoding.UTF8.GetChars(temp)) + tValue + MemoTerminator;
                 }
 
                 if ((tValue.Length % aBase.BlockSize) != 0)
@@ -87,7 +94,7 @@ namespace DotNetDBF
                 }
 
 
-
+                
                 var tPosition = raf.Seek(0, SeekOrigin.End); //Got To End Of File
                 var tBlockDiff = tPosition % aBase.BlockSize;
                 if (tBlockDiff != 0)

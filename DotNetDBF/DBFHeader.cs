@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace DotNetDBF
 {
@@ -88,7 +89,7 @@ namespace DotNetDBF
                                         sizeof(byte) +
                                         sizeof(short) +
                                         (DBFField.SIZE * FieldArray.Length) +
-                                        sizeof(byte));
+                                        sizeof(byte) + (455));
 
         internal short RecordSize
         {
@@ -167,6 +168,7 @@ namespace DotNetDBF
             dataOutput.Write(_reserv2); /* 20-23 */
             dataOutput.Write(_reserv3); /* 24-27 */
 
+            _mdxFlag = 0x2;
             dataOutput.Write(_mdxFlag); /* 28 */
             dataOutput.Write(LanguageDriver); /* 29 */
             dataOutput.Write(_reserv4); /* 30-31 */
@@ -175,8 +177,9 @@ namespace DotNetDBF
             {
                 field.Write(dataOutput);
             }
-
             dataOutput.Write(HeaderRecordTerminator); /* n+1 */
+            dataOutput.Write(Enumerable.Range(0,455).Select(_=> (byte)0).ToArray());
+            
         }
     }
 }

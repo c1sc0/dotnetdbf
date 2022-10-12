@@ -11,8 +11,7 @@ namespace DotNetDBF
 
 
         private int _nextBlock; /* 0-3*/
-        private byte _version = 0x03;
-
+        private byte _version = 0x00;
 
         internal int NextBlock
         {
@@ -28,10 +27,12 @@ namespace DotNetDBF
 
         internal void Write(BinaryWriter dataOutput)
         {
-            dataOutput.Write(_nextBlock);
-            dataOutput.Write(new byte[12]);
+            dataOutput.Write(new byte[3]);
+            dataOutput.Write((int)0x35);
+            dataOutput.Write((int)0x40);
+            dataOutput.Write(new byte[8]);
             dataOutput.Write(_version);
-            dataOutput.Write(new byte[495]);
+            dataOutput.Write(new byte[484]);
         }
     }
 }
