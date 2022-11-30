@@ -28,7 +28,7 @@ namespace DotNetDBF
         internal void Write(BinaryWriter dataOutput)
         {
             dataOutput.Write(new byte[3]);
-            dataOutput.Write((int)0x35);
+            dataOutput.Write((int)0x00);
             dataOutput.Write((int)0x40);
             dataOutput.Write(new byte[8]);
             dataOutput.Write(_version);
