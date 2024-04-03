@@ -162,6 +162,8 @@ namespace DotNetDBF
 
         public delegate Stream LazyStream();
 
+        public byte LanguageDriver => _header.LanguageDriver;
+
         private Stream _loadedStream;
 
         private LazyStream GetLazyStreamFromLocation()
