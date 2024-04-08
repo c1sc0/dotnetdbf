@@ -11,7 +11,6 @@
     <PackageTags>clipper xbase dbf</PackageTags>
     <Authors>Anil Kumar, Jay Tuley, K</Authors>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <RepositoryUrl>https://github.com/ekonbenefits/dotnetdbf.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <IncludeSymbols>True</IncludeSymbols>
